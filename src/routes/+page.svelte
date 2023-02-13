@@ -1,12 +1,11 @@
 <script>
-	import Counter from './Counter.svelte';
-	import welcome from '$lib/images/svelte-welcome.webp';
-	import welcome_fallback from '$lib/images/svelte-welcome.png';
+	import welcome from "$lib/images/svelte-welcome.webp";
+	import welcome_fallback from "$lib/images/svelte-welcome.png";
 </script>
 
 <svelte:head>
 	<title>Home</title>
-	<meta name="description" content="Svelte demo app" />
+	<meta name="description" content="Learn swedish app" />
 </svelte:head>
 
 <section>
@@ -18,14 +17,15 @@
 			</picture>
 		</span>
 
-		to your new<br />SvelteKit app
+		to <br /> Lära sig svenska app
 	</h1>
 
 	<h2>
-		try editing <strong>src/routes/+page.svelte</strong>
+		Visit <a href="/articles">Articles</a> to view reading &amp; listening materials
 	</h2>
-
-	<Counter />
+	<h2>
+		Visit <a href="/words">Words</a> to review words
+	</h2>
 </section>
 
 <style>
