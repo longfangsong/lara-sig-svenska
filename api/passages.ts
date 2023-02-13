@@ -1,12 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import axios, { all } from "axios";
-import pkg from 'pg';
-const { Client } = pkg;
+import axios from "axios";
+import pg from 'pg';
+const { Client } = pg;
 import { load } from "cheerio";
 
-async function connect_database(): Promise<any> {
-    console.log(process.env.PGHOST);
-    console.log(process.env.PGUSER);
+async function connect_database(): Promise<pg.Client> {
     const client = new Client({
         port: 5432,
         host: process.env.PGHOST,
@@ -32,7 +30,7 @@ export default async function handler(
     const $ = load(sveriges_radio_response.data);
     const elements = $("h2.heading.heading-link.h2>a.heading");
     let all_titles = elements.map((_, element) => $(element).text()).toArray();
-    console.log(all_titles.length);
+    await db_client.query('BEGIN');
     let exists = await Promise.all(all_titles.map(async (title) => {
         try {
             let result = await db_client.query("select id from article where title = $1;", [title]);
@@ -44,7 +42,6 @@ export default async function handler(
     let titles_to_fetch = all_titles.filter((_, i) => !exists[i]);
     let detail_urls_to_fetch = elements.filter(i => !exists[i]).map((_, element) => "https://sverigesradio.se" + $(element).attr("href")).toArray();
     let fetched_detail_responses = await Promise.all(detail_urls_to_fetch.map(async (it) => {
-        console.log(`fetch new article from ${it}`);
         let result = await axios.get(it);
         return result;
     }));
@@ -56,11 +53,19 @@ export default async function handler(
         return content.replace(/\s\s+/g, "\n");
     });
     await Promise.all(titles_to_fetch.map(async (title, i) => {
-        await db_client.query('insert into article (title, url, content) values ($1, $2, $3)', [title, detail_urls_to_fetch[i], fetched_detail_contents[i]]);
+        try {
+            await db_client.query('insert into article (title, url, content) values ($1, $2, $3)', [title, detail_urls_to_fetch[i], fetched_detail_contents[i]]);
+        } catch (error) {
+            db_client.query('ROLLBACK');
+            response.status(500);
+            return;
+        }
     }));
-    let result_query = await db_client.query('select title, url, content from article order by id desc limit $1 offset $2', [limit, offset]);
-    let result = result_query.rows.map(({ title, url, content }) => {
-        return { title, url, content };
+    await db_client.query('COMMIT');
+    let result_query = await db_client.query('select id, title, url, content from article order by id desc limit $1 offset $2', [limit, offset]);
+    let result = result_query.rows.map(({ id, title, url, content }) => {
+        return { id, title, url, content };
     })
+    response.setHeader('Cache-Control', 's-maxage=43200');
     response.status(200).json(result);
 }
