@@ -51,7 +51,11 @@ export default async function handler(
     let result = await db_client.query("SELECT id FROM word WHERE spell = $1", [word]);
     if (result.rowCount == 0) {
         let [meaning, pronunciation] = await Promise.all([fetch_meaning(word), fetch_pronunciation(word)]);
-        await db_client.query("INSERT INTO word (spell, meaning, pronunciation) VALUES ($1, $2, $3)", [word, meaning, pronunciation]);
+        try {
+            await db_client.query("INSERT INTO word (spell, meaning, pronunciation) VALUES ($1, $2, $3)", [word, meaning, pronunciation]);
+        } catch {
+            // ignore
+        }
     }
     let query_result = await db_client.query("SELECT id, spell, meaning, pronunciation FROM word WHERE spell = $1", [word]);
     await db_client.query("COMMIT");
@@ -59,7 +63,7 @@ export default async function handler(
     let word_spell = query_result.rows[0].spell;
     let word_meaning = query_result.rows[0].meaning;
     let word_pronunciation = query_result.rows[0].pronunciation;
-    response.setHeader('Cache-Control', 's-maxage=2630000');
+    response.setHeader('Cache-Control', 'max-age=2630000,s-maxage=2630000');
     response.status(200).json({
         id: word_id,
         spell: word_spell,
