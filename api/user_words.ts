@@ -39,10 +39,15 @@ async function fetch_all(request: VercelRequest, response: VercelResponse) {
     const { user_id } = request.query;
     let db_client = await connect_database();
     let query_result = await db_client.query(`
-        SELECT word.id as id, word.spell as spell, word.meaning as meaning, word.pronunciation as pronunciation
+        SELECT
+            word.id as id,
+            word.spell as spell,
+            word.meaning as meaning,
+            encode(word.pronunciation, 'base64') as pronunciation,
+            user_word.review_count as review_count
         FROM word, user_word
         WHERE user_word.user_id = $1 AND user_word.word_id = word.id;
     `, [user_id]);
-    let result = query_result.rows.map(({ id, spell, meaning, pronunciation }) => ({ id, spell, meaning, pronunciation }));
+    let result = query_result.rows.map(({ id, spell, meaning, pronunciation, review_count }) => ({ id, spell, meaning, pronunciation, review_count }));
     response.status(200).json(result);
 }

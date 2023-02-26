@@ -1,23 +1,29 @@
+<script lang="ts">
+	import axios from "axios";
+	import { onMount } from "svelte";
+	import Word from "./Word.svelte";
+
+	interface Word {
+		id: string;
+		spell: string;
+		meaning: string;
+		pronunciation: string;
+		review_count: string;
+	}
+	let words: Array<Word> = [];
+	onMount(async () => {
+		const res = await axios.get(`/api/user_words?user_id=1`);
+		words = res.data;
+	});
+</script>
+
 <svelte:head>
 	<title>About</title>
-	<meta name="description" content="About this app" />
+	<meta name="Words" content="Your words" />
 </svelte:head>
 
-<div class="text-column">
-	<h1>About this app</h1>
-
-	<p>
-		This is a <a href="https://kit.svelte.dev">SvelteKit</a> app. You can make
-		your own by typing the following into your command line and following the
-		prompts:
-	</p>
-
-	<pre>npm create svelte@latest</pre>
-
-	<p>
-		The page you're looking at is purely static HTML, with no client-side
-		interactivity needed. Because of that, we don't need to load any
-		JavaScript. Try viewing the page's source, or opening the devtools
-		network panel and reloading.
-	</p>
+<div>
+	{#each words as word}
+		<Word {word} />
+	{/each}
 </div>

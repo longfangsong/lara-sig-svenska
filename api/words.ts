@@ -36,9 +36,10 @@ async function fetch_pronunciation(word: string): Promise<Buffer> {
     let response = await axios.post(url, content);
     let pronunciation_url = response.data['URL'];
     let pronunciation_response = await axios.get(pronunciation_url, {
-        responseType: 'blob'
+        responseType: 'arraybuffer'
     });
-    return Buffer.from(pronunciation_response.data);
+    console.log(pronunciation_response.data);
+    return pronunciation_response.data;
 }
 
 export default async function handler(
@@ -46,6 +47,7 @@ export default async function handler(
     response: VercelResponse,
 ) {
     let word = request.query.word as string;
+    console.log(word);
     let db_client = await connect_database();
     await db_client.query("BEGIN");
     let result = await db_client.query("SELECT id FROM word WHERE spell = $1", [word]);
@@ -54,10 +56,10 @@ export default async function handler(
         try {
             await db_client.query("INSERT INTO word (spell, meaning, pronunciation) VALUES ($1, $2, $3)", [word, meaning, pronunciation]);
         } catch {
-            // ignore
+            console.warn(`failed to insert word ${word}`)
         }
     }
-    let query_result = await db_client.query("SELECT id, spell, meaning, pronunciation FROM word WHERE spell = $1", [word]);
+    let query_result = await db_client.query("SELECT id, spell, meaning, encode(pronunciation, 'base64') as pronunciation FROM word WHERE spell = $1", [word]);
     await db_client.query("COMMIT");
     let word_id = query_result.rows[0].id;
     let word_spell = query_result.rows[0].spell;
