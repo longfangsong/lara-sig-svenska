@@ -23,6 +23,8 @@ export default async function handler(
         await create(request, response);
     } else if (request.method == "GET") {
         await fetch_all(request, response);
+    } else if (request.method == "PATCH") {
+        await update(request, response);
     }
 }
 
@@ -46,8 +48,20 @@ async function fetch_all(request: VercelRequest, response: VercelResponse) {
             encode(word.pronunciation, 'base64') as pronunciation,
             user_word.review_count as review_count
         FROM word, user_word
-        WHERE user_word.user_id = $1 AND user_word.word_id = word.id;
+        WHERE user_word.user_id = $1 AND user_word.word_id = word.id
+        ORDER BY review_count DESC;
     `, [user_id]);
     let result = query_result.rows.map(({ id, spell, meaning, pronunciation, review_count }) => ({ id, spell, meaning, pronunciation, review_count }));
     response.status(200).json(result);
+}
+
+async function update(request: VercelRequest, response: VercelResponse) {
+    const { user_id, word_id } = request.query;
+    let db_client = await connect_database();
+    await db_client.query(`
+        UPDATE user_word
+        SET review_count = review_count + 1
+        WHERE user_id = $1 AND word_id = $2;
+    `, [user_id, word_id]);
+    response.status(200).json({});
 }
