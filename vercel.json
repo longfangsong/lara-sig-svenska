@@ -1,0 +1,8 @@
+{
+    "crons": [
+        {
+            "path": "/api/fetch_passages",
+            "schedule": "0 0 * * *"
+        }
+    ]
+}

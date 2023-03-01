@@ -18,12 +18,15 @@ async function connect_database(): Promise<pg.Client> {
     return client;
 }
 
-async function fetch_meaning(word: string): Promise<string> {
+async function fetch_meaning(word: string): Promise<[string, string, string] | null> {
     const url = `https://www.dict.com/swedish-english/${encodeURIComponent(word)}`;
     const response = await axios.get(url);
     const $ = load(response.data);
-    const meaning = $(".entry").html();
-    return meaning || "";
+    const origin_spell = $(".entry .lex_ful_entr").text();
+    const pronunciation = $(".entry .lex_ful_pron").text();
+    const meaning_element = $(".entry tbody");
+    const meaning = meaning_element.children(":not(.head)").map((_, it) => $(it).text()).toArray().join('\n');
+    return [origin_spell, pronunciation, meaning];
 }
 
 async function fetch_pronunciation(word: string): Promise<Buffer> {
@@ -38,7 +41,6 @@ async function fetch_pronunciation(word: string): Promise<Buffer> {
     let pronunciation_response = await axios.get(pronunciation_url, {
         responseType: 'arraybuffer'
     });
-    console.log(pronunciation_response.data);
     return pronunciation_response.data;
 }
 
@@ -46,30 +48,26 @@ export default async function handler(
     request: VercelRequest,
     response: VercelResponse,
 ) {
-    let word = request.query.word as string;
-    console.log(word);
+    let spell = request.query.spell as string;
     let db_client = await connect_database();
-    await db_client.query("BEGIN");
-    let result = await db_client.query("SELECT id FROM word WHERE spell = $1", [word]);
-    if (result.rowCount == 0) {
-        let [meaning, pronunciation] = await Promise.all([fetch_meaning(word), fetch_pronunciation(word)]);
+    // todo: select from Spell_Word
+    let spell_world_query_result = await db_client.query("SELECT word_id FROM Spell_Word WHERE spell = $1", [spell]);
+    if (spell_world_query_result.rowCount == 0) {
+        let [origin_meaning, pronunciation_voice] = await Promise.all([fetch_meaning(spell), fetch_pronunciation(spell)]);
+        let [origin_spell, pronunciation, meaning] = origin_meaning!!;
         try {
-            await db_client.query("INSERT INTO word (spell, meaning, pronunciation) VALUES ($1, $2, $3)", [word, meaning, pronunciation]);
+            let insert_word_query_result = await db_client.query(`INSERT INTO word (spell, meaning, pronunciation, pronunciation_voice) 
+                VALUES ($1, $2, $3, $4) ON CONFLICT DO UPDATE SET id=word.id RETURNING id`,
+                [origin_spell, meaning, pronunciation, pronunciation_voice]);
+            await db_client.query(`INSERT INTO Spell_Word (spell, word_id) VALUES ($1, $2);`, [spell, insert_word_query_result.rows[0].id]);
         } catch {
-            console.warn(`failed to insert word ${word}`)
+            console.warn(`failed to insert word ${spell}`)
         }
     }
-    let query_result = await db_client.query("SELECT id, spell, meaning, encode(pronunciation, 'base64') as pronunciation FROM word WHERE spell = $1", [word]);
-    await db_client.query("COMMIT");
-    let word_id = query_result.rows[0].id;
-    let word_spell = query_result.rows[0].spell;
-    let word_meaning = query_result.rows[0].meaning;
-    let word_pronunciation = query_result.rows[0].pronunciation;
+    let word_query_result = await db_client.query(`
+        SELECT word.id, word.spell, word.pronunciation, word.meaning, encode(word.pronunciation_voice, 'base64') as pronunciation_voice 
+        FROM word, Spell_Word
+        WHERE Spell_Word.spell = $1 and Spell_Word.word_id=word.id`, [spell]);
     response.setHeader('Cache-Control', 'max-age=2630000,s-maxage=2630000');
-    response.status(200).json({
-        id: word_id,
-        spell: word_spell,
-        meaning: word_meaning,
-        pronunciation: word_pronunciation,
-    });
+    response.status(200).json(word_query_result.rows[0]);
 }

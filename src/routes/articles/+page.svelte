@@ -1,19 +1,8 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import axios from "axios";
-	import Article from "./Article.svelte";
+	import type { ArticleMeta } from "$lib/types";
 
-	interface Article {
-		title: string;
-		content: string;
-		url: string;
-	}
-	let articles: Array<Article> = [];
-
-	onMount(async () => {
-		const res = await axios.get(`/api/passages?limit=10&offset=0`);
-		articles = res.data;
-	});
+	/** @type {import('./$types').PageData} */
+	export let data: { articles: Array<ArticleMeta> };
 </script>
 
 <svelte:head>
@@ -22,7 +11,7 @@
 </svelte:head>
 
 <div>
-	{#each articles as article}
-		<Article {article} />
+	{#each data.articles as article}
+		<h1><a href={`/articles/${article.id}`}>{article.title}</a></h1>
 	{/each}
 </div>
