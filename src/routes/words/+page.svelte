@@ -1,20 +1,9 @@
 <script lang="ts">
-	import axios from "axios";
-	import { onMount } from "svelte";
 	import Word from "./Word.svelte";
+	import type { UserWord } from "$lib/types";
 
-	interface Word {
-		id: string;
-		spell: string;
-		meaning: string;
-		pronunciation: string;
-		review_count: string;
-	}
-	let words: Array<Word> = [];
-	onMount(async () => {
-		const res = await axios.get(`/api/user_words?user_id=1`);
-		words = res.data;
-	});
+	/** @type {import('./$types').PageData} */
+	export let data: { userWords: Array<UserWord> };
 </script>
 
 <svelte:head>
@@ -23,7 +12,7 @@
 </svelte:head>
 
 <div>
-	{#each words as word}
+	{#each data.userWords as word}
 		<Word {word} />
 	{/each}
 </div>

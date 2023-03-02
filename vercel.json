@@ -1,7 +1,7 @@
 {
     "crons": [
         {
-            "path": "/api/fetch_passages",
+            "path": "/api/fetch_articles",
             "schedule": "0 0 * * *"
         }
     ]

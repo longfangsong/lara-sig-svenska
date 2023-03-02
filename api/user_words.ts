@@ -21,38 +21,25 @@ export default async function handler(
 ) {
     if (request.method == "POST") {
         await create(request, response);
-    } else if (request.method == "GET") {
-        await fetch_all(request, response);
     } else if (request.method == "PATCH") {
         await update(request, response);
     }
 }
 
 async function create(request: VercelRequest, response: VercelResponse) {
-    const { user_id, spell } = request.body;
+    const { user_id, spell, id } = request.body;
     let db_client = await connect_database();
-    let query_result = await db_client.query(`insert into user_word (
-        select $1, id from word where spell = $2
-    ) returning word_id;`, [user_id, spell]);
-    response.status(200).json({ id: query_result.rows[0].word_id });
-}
-
-async function fetch_all(request: VercelRequest, response: VercelResponse) {
-    const { user_id } = request.query;
-    let db_client = await connect_database();
-    let query_result = await db_client.query(`
-        SELECT
-            word.id as id,
-            word.spell as spell,
-            word.meaning as meaning,
-            encode(word.pronunciation, 'base64') as pronunciation,
-            user_word.review_count as review_count
-        FROM word, user_word
-        WHERE user_word.user_id = $1 AND user_word.word_id = word.id
-        ORDER BY review_count DESC;
-    `, [user_id]);
-    let result = query_result.rows.map(({ id, spell, meaning, pronunciation, review_count }) => ({ id, spell, meaning, pronunciation, review_count }));
-    response.status(200).json(result);
+    if (spell) {
+        let query_result = await db_client.query(`insert into user_word 
+            (select $1, id from word where spell = $2)
+            returning word_id;`, [user_id, spell]);
+        response.status(200).json({ id: query_result.rows[0].word_id });
+    } else if (id) {
+        await db_client.query(`insert into user_word values ($1, $2) returning word_id;`, [user_id, id]);
+        response.status(200).json({ id });
+    } else {
+        response.status(400).send("");
+    }
 }
 
 async function update(request: VercelRequest, response: VercelResponse) {

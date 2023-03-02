@@ -50,18 +50,19 @@ export default async function handler(
 ) {
     let spell = request.query.spell as string;
     let db_client = await connect_database();
-    // todo: select from Spell_Word
     let spell_world_query_result = await db_client.query("SELECT word_id FROM Spell_Word WHERE spell = $1", [spell]);
     if (spell_world_query_result.rowCount == 0) {
-        let [origin_meaning, pronunciation_voice] = await Promise.all([fetch_meaning(spell), fetch_pronunciation(spell)]);
-        let [origin_spell, pronunciation, meaning] = origin_meaning!!;
+        let [origin_spell, pronunciation, meaning] = (await fetch_meaning(spell))!!;
+        let pronunciation_voice = await fetch_pronunciation(origin_spell);
         try {
             let insert_word_query_result = await db_client.query(`INSERT INTO word (spell, meaning, pronunciation, pronunciation_voice) 
-                VALUES ($1, $2, $3, $4) ON CONFLICT DO UPDATE SET id=word.id RETURNING id`,
+                VALUES ($1, $2, $3, $4) ON CONFLICT (spell) DO UPDATE SET id=word.id RETURNING id`,
                 [origin_spell, meaning, pronunciation, pronunciation_voice]);
+            // todo: those which spell != origin_spell may have their own pronunciation_voice
             await db_client.query(`INSERT INTO Spell_Word (spell, word_id) VALUES ($1, $2);`, [spell, insert_word_query_result.rows[0].id]);
-        } catch {
-            console.warn(`failed to insert word ${spell}`)
+        } catch (error) {
+            console.warn(`failed to insert word ${spell}`);
+            console.warn(error);
         }
     }
     let word_query_result = await db_client.query(`
