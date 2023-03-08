@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let provider: any;
+  export let provider: any
 </script>
 
 <form action={provider.signinUrl} method="POST">
