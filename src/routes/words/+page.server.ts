@@ -2,8 +2,8 @@ import { connect_database } from '$lib/server/database';
 import type { UserWord } from '$lib/types';
 import type { PageServerLoad } from './$types';
 
-export const load = (async () => {
-    const db_client = await connect_database();
+export const load = (async ({ locals }) => {
+    const [db_client, session] = await Promise.all([connect_database(), locals.getSession()]);
     let query_result = await db_client.query(`
         SELECT
             word.id as id,
@@ -12,10 +12,10 @@ export const load = (async () => {
             word.pronunciation as pronunciation,
             encode(word.pronunciation_voice, 'base64') as pronunciation_voice,
             user_word.review_count as review_count
-        FROM word, user_word
-        WHERE user_word.user_id = $1 AND user_word.word_id = word.id
+        FROM word, user_word, "User"
+        WHERE user_word.user_id = "User".id AND user_word.word_id = word.id AND "User".email=$1
         ORDER BY user_word.review_count DESC;
-    `, [1]);
+    `, [session?.user?.email]);
     const userWords: Array<UserWord> = query_result.rows.map((row) => {
         return {
             id: row.id,

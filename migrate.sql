@@ -26,11 +26,18 @@ CREATE TABLE Spell_Word(
     PRIMARY KEY (spell, word_id)
 );
 
+CREATE EXTENSION citext;
+CREATE TABLE "User"( 
+    id SERIAL PRIMARY KEY,
+    email citext unique
+);
+
 CREATE TABLE User_Word(
     user_id INTEGER,
     word_id BIGINT,
     review_count INTEGER DEFAULT 0,
     last_review_time TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES "User" (id) ON DELETE CASCADE,
     FOREIGN KEY (word_id) REFERENCES Word (id) ON DELETE CASCADE,
     PRIMARY KEY(user_id, word_id)
 );
