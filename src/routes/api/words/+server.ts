@@ -37,29 +37,33 @@ async function fetch_pronunciation(word: string): Promise<Buffer> {
 export async function GET({ url }: RequestEvent) {
     let spell = url.searchParams.get('spell');
     let db_client = await connect_database();
-    let spell_world_query_result = await db_client.query("SELECT word_id FROM Spell_Word WHERE spell = $1", [spell]);
-    if (spell_world_query_result.rowCount == 0) {
-        let [origin_spell, pronunciation, meaning] = (await fetch_meaning(spell!!))!!;
-        let pronunciation_voice = await fetch_pronunciation(origin_spell);
-        try {
-            let insert_word_query_result = await db_client.query(`INSERT INTO word (spell, meaning, pronunciation, pronunciation_voice) 
+    try {
+        let spell_world_query_result = await db_client.query("SELECT word_id FROM Spell_Word WHERE spell = $1", [spell]);
+        if (spell_world_query_result.rowCount == 0) {
+            let [origin_spell, pronunciation, meaning] = (await fetch_meaning(spell!!))!!;
+            let pronunciation_voice = await fetch_pronunciation(origin_spell);
+            try {
+                let insert_word_query_result = await db_client.query(`INSERT INTO word (spell, meaning, pronunciation, pronunciation_voice) 
                 VALUES ($1, $2, $3, $4) ON CONFLICT (spell) DO UPDATE SET id=word.id RETURNING id`,
-                [origin_spell, meaning, pronunciation, pronunciation_voice]);
-            // todo: those which spell != origin_spell may have their own pronunciation_voice
-            await db_client.query(`INSERT INTO Spell_Word (spell, word_id) VALUES ($1, $2);`, [spell, insert_word_query_result.rows[0].id]);
-        } catch (error) {
-            console.warn(`failed to insert word ${spell}`);
-            console.warn(error);
+                    [origin_spell, meaning, pronunciation, pronunciation_voice]);
+                // todo: those which spell != origin_spell may have their own pronunciation_voice
+                await db_client.query(`INSERT INTO Spell_Word (spell, word_id) VALUES ($1, $2);`, [spell, insert_word_query_result.rows[0].id]);
+            } catch (error) {
+                console.warn(`failed to insert word ${spell}`);
+                console.warn(error);
+            }
         }
-    }
-    let word_query_result = await db_client.query(`
+        let word_query_result = await db_client.query(`
         SELECT word.id, word.spell, word.pronunciation, word.meaning, encode(word.pronunciation_voice, 'base64') as pronunciation_voice 
         FROM word, Spell_Word
         WHERE Spell_Word.spell = $1 and Spell_Word.word_id=word.id`, [spell]);
-    return new Response(JSON.stringify(word_query_result.rows[0]), {
-        status: 200,
-        headers: {
-            'Cache-Control': 'max-age=2630000,s-maxage=2630000'
-        }
-    });
+        return new Response(JSON.stringify(word_query_result.rows[0]), {
+            status: 200,
+            headers: {
+                'Cache-Control': 'max-age=2630000,s-maxage=2630000'
+            }
+        });
+    } finally {
+        await db_client.end();
+    }
 }

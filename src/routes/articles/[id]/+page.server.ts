@@ -11,12 +11,13 @@ async function fetch_user_id(db_client: pg.Client, email: string): Promise<numbe
 
 export const load = (async ({ params, locals }) => {
     const [db_client, session] = await Promise.all([connect_database(), locals.getSession()]);
-    let user_id: number | null = null;
-    if (session?.user?.email !== null) {
-        user_id = await fetch_user_id(db_client, session?.user?.email!!);
-    }
-    const [query_words_result, query_meta_result] = await Promise.all([
-        db_client.query(`select tt_words.spell as spell, word.id as id, User_Word.review_count as review_count
+    try {
+        let user_id: number | null = null;
+        if (session?.user?.email !== null) {
+            user_id = await fetch_user_id(db_client, session?.user?.email!!);
+        }
+        const [query_words_result, query_meta_result] = await Promise.all([
+            db_client.query(`select tt_words.spell as spell, word.id as id, User_Word.review_count as review_count
         from (select ROW_NUMBER() over () as index, word as spell from (
             select TRIM(BOTH FROM regexp_split_to_table(content, E'(?=[\.\!\?\, \n])|(?<=[\.\!\?\, \n])')) as word from article where id = $1
         ) as t_words
@@ -25,14 +26,17 @@ export const load = (async ({ params, locals }) => {
         LEFT JOIN Word ON Spell_Word.word_id=Word.id 
         LEFT JOIN User_Word ON Word.id=User_Word.word_id and user_id=$2
         order by index;`,
-            [params.id, user_id]
-        ),
-        db_client.query("select id, title, url from article where id=$1", [params.id])]);
-    const words = query_words_result.rows.map(it => ({ spell: it.spell, id: it.id, review_count: it.review_count }));
-    const meta = query_meta_result.rows[0];
-    const article = {
-        words,
-        ...meta
-    } as Article;
-    return article;
+                [params.id, user_id]
+            ),
+            db_client.query("select id, title, url from article where id=$1", [params.id])]);
+        const words = query_words_result.rows.map(it => ({ spell: it.spell, id: it.id, review_count: it.review_count }));
+        const meta = query_meta_result.rows[0];
+        const article = {
+            words,
+            ...meta
+        } as Article;
+        return article;
+    } finally {
+        await db_client.end();
+    }
 }) satisfies PageServerLoad;

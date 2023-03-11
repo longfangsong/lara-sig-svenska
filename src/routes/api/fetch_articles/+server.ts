@@ -21,22 +21,26 @@ export async function GET() {
         fetch("https://sverigesradio.se/radioswedenpalattsvenska"),
         connect_database()
     ]);
-    const $ = load(await sveriges_radio_response.text());
-    const elements = $("h2.heading.heading-link.h2>a.heading");
-    let all_titles = elements.map((_, element) => $(element).text()).toArray();
-    let exists = await Promise.all(all_titles.map(async (title) => {
-        try {
-            let query_title_result = await db_client.query("select id from article where title = $1;", [title]);
-            return query_title_result.rows.length != 0;
-        } catch (error) {
-            return false;
-        }
-    }));
-    let titles_to_fetch = all_titles.filter((_, i) => !exists[i]);
-    let detail_urls_to_fetch = elements.filter(i => !exists[i]).map((_, element) => "https://sverigesradio.se" + $(element).attr("href")).toArray();
-    await Promise.all(detail_urls_to_fetch.map(async (url, i) => {
-        const title = titles_to_fetch[i];
-        await fetch_url(title, url, db_client);
-    }));
-    return new Response(null, { status: 200 });
+    try {
+        const $ = load(await sveriges_radio_response.text());
+        const elements = $("h2.heading.heading-link.h2>a.heading");
+        let all_titles = elements.map((_, element) => $(element).text()).toArray();
+        let exists = await Promise.all(all_titles.map(async (title) => {
+            try {
+                let query_title_result = await db_client.query("select id from article where title = $1;", [title]);
+                return query_title_result.rows.length != 0;
+            } catch (error) {
+                return false;
+            }
+        }));
+        let titles_to_fetch = all_titles.filter((_, i) => !exists[i]);
+        let detail_urls_to_fetch = elements.filter(i => !exists[i]).map((_, element) => "https://sverigesradio.se" + $(element).attr("href")).toArray();
+        await Promise.all(detail_urls_to_fetch.map(async (url, i) => {
+            const title = titles_to_fetch[i];
+            await fetch_url(title, url, db_client);
+        }));
+        return new Response(null, { status: 200 });
+    } finally {
+        await db_client.end();
+    }
 }
