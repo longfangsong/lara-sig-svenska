@@ -12,7 +12,7 @@
     };
 
     async function review() {
-        await axios.patch(`/api/user_words?user_id=1&word_id=${word.id}`);
+        await axios.patch(`/api/user_words?word_id=${word.id}`);
         word.review_count += 1;
     }
 </script>

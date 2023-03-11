@@ -30,8 +30,9 @@ export const load = (async ({ params, locals }) => {
         db_client.query("select id, title, url from article where id=$1", [params.id])]);
     const words = query_words_result.rows.map(it => ({ spell: it.spell, id: it.id, review_count: it.review_count }));
     const meta = query_meta_result.rows[0];
-    return {
+    const article = {
         words,
         ...meta
     } as Article;
+    return article;
 }) satisfies PageServerLoad;

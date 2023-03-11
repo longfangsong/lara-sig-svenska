@@ -34,7 +34,6 @@
         const id = tooltipWord?.id;
         if (id) {
             await axios.post(`/api/user_words`, {
-                user_id: 1,
                 id,
             });
             data.words.forEach((word, index) => {
@@ -46,7 +45,6 @@
     }
     function word_class(word_info: WordInArticle) {
         if (!word_info) {
-            console.warn(`word_info = ${word_info}`);
             return "word";
         }
         if (word_info.id === null) {
