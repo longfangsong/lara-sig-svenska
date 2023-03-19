@@ -20,6 +20,7 @@ specifiers:
   svelte: 3.55.0
   svelte-check: 2.10.2
   svelte-popperjs: ^1.3.2
+  sveltestrap: ^5.10.0
   typescript: 4.9.4
   vite: 4.0.1
 
@@ -31,6 +32,7 @@ dependencies:
   next-auth: 4.20.1
   pg: 8.10.0
   svelte-popperjs: 1.3.2_wbktlcl6xhsncvz2r5eelcs6le
+  sveltestrap: 5.10.0_svelte@3.55.0
 
 devDependencies:
   '@fontsource/fira-mono': 4.5.10
@@ -1863,6 +1865,15 @@ packages:
   /svelte/3.55.0:
     resolution: {integrity: sha512-uGu2FVMlOuey4JoKHKrpZFkoYyj0VLjJdz47zX5+gVK5odxHM40RVhar9/iK2YFRVxvfg9FkhfVlR0sjeIrOiA==}
     engines: {node: '>= 8'}
+
+  /sveltestrap/5.10.0_svelte@3.55.0:
+    resolution: {integrity: sha512-k6Ob+6G2AMYvBidXHBKM9W28fJqFHbmosqCe/NC8pv6TV7K+v47Yw+zmnLWkjqCzzmjkSLkL48SrHZrlWc9mYQ==}
+    peerDependencies:
+      svelte: ^3.29.0
+    dependencies:
+      '@popperjs/core': 2.11.6
+      svelte: 3.55.0
+    dev: false
 
   /tar/6.1.13:
     resolution: {integrity: sha512-jdIBIN6LTIe2jqzay/2vtYLlBHa3JF42ot3h1dW8Q0PaAG4v8rm0cvpVePtau5C6OKXGGcgO9q2AMNSWxiLqKw==}
