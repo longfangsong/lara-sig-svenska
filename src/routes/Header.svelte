@@ -12,7 +12,7 @@
 
 <header>
 	<Navbar color="light" light expand="md" class="container-fluid">
-		<NavbarBrand href="/">Lara Sig Svenska</NavbarBrand>
+		<NavbarBrand href="/">Lära Sig Svenska</NavbarBrand>
 		<NavbarToggler on:click={() => (isOpen = !isOpen)} />
 		<Collapse {isOpen} navbar expand="md" on:update={handleUpdate}>
 			<Nav class="ms-auto" navbar>

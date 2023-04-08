@@ -2,6 +2,7 @@
 	import Word from "./Word.svelte";
 	import type { UserWord } from "$lib/types";
 	import { page } from "$app/stores";
+	import { navigating } from '$app/stores';
 
 	/** @type {import('./$types').PageData} */
 	export let data: { userWords: Array<UserWord> };
@@ -13,9 +14,13 @@
 </svelte:head>
 {#if $page.data.session}
 <div>
-	{#each data.userWords as word}
-		<Word {word} />
-	{/each}
+	{#if $navigating}
+		<p>Loading</p>
+	{:else}
+		{#each data.userWords as word}
+			<Word {word} />
+		{/each}
+	{/if}
 </div>
 {:else}
 <h1>Access Denied</h1>
