@@ -3,6 +3,7 @@
 	import type { UserWord } from "$lib/types";
 	import { page } from "$app/stores";
 	import { navigating } from '$app/stores';
+    import { Spinner } from "sveltestrap"
 
 	/** @type {import('./$types').PageData} */
 	export let data: { userWords: Array<UserWord> };
@@ -12,10 +13,13 @@
 	<title>About</title>
 	<meta name="Words" content="Your words" />
 </svelte:head>
+
 {#if $page.data.session}
-<div>
+<div class="mt-2">
 	{#if $navigating}
-		<p>Loading</p>
+		<div class="spinner-holder d-flex justify-content-center mt-5">
+			<Spinner color="primary" class="loading"></Spinner>
+		</div>
 	{:else}
 		{#each data.userWords as word}
 			<Word {word} />

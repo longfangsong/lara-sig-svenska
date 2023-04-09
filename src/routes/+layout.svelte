@@ -1,6 +1,5 @@
 <script lang="ts">
   import Header from "./Header.svelte";
-  import { page } from "$app/stores";
   import "./styles.css";
 </script>
 

@@ -3,35 +3,35 @@
     import axios from "axios";
     /** @type {import('./$types').PageData} */
     export let data: Article;
-    import { createPopperActions } from "svelte-popperjs";
-    const [popperRef, popperContent] = createPopperActions({
-        placement: "bottom",
-        strategy: "fixed",
-    });
-    const extraOpts = {
-        modifiers: [{ name: "offset", options: { offset: [0, 1] } }],
-    };
+    import { Badge, Button, Col, Container, Popover, Row, Spinner } from "sveltestrap"
+
     let showTooltipForIndex: number | null = null;
-    let tooltipWord: Word | null = null;
-    function closePopper() {
-        showTooltipForIndex = null;
-        tooltipWord = null;
+    let wordsInfo: Array<Word | null> = data.words.map(() => null);
+    let popoverRefs: Array<Popover | null> = data.words.map(() => null);
+    function closeAllPopovers() {
+        for (let popover of popoverRefs) {
+            if (popover !== null) {
+                popover.$set({"isOpen": false});
+            }
+        }
     }
-    async function openPopper(index: number) {
-        tooltipWord = null;
-        showTooltipForIndex = index;
+    async function loadWord(index: number) {
+        closeAllPopovers();
+        while (wordsInfo.length < data.words.length) {
+            wordsInfo.push(null);
+        }
         const word = data.words[index];
         let response = await axios.get(`/api/words?spell=${word.spell}`);
-        tooltipWord = response.data;
-        data.words.forEach((other_word, index) => {
+        wordsInfo[index] = response.data;
+        data.words.forEach((other_word, other_word_index) => {
             if (other_word.spell.toLowerCase() === word.spell.toLowerCase()) {
-                data.words[index].id = tooltipWord?.id || null;
-                data.words[index].review_count = word?.review_count || null;
+                data.words[other_word_index].id = wordsInfo[index]?.id || null;
+                data.words[other_word_index].review_count = word?.review_count || null;
             }
         });
     }
-    async function addWord() {
-        const id = tooltipWord?.id;
+    async function addWord(index: number) {
+        const id = wordsInfo[index]?.id;
         if (id) {
             await axios.post(`/api/user_words`, {
                 id,
@@ -62,54 +62,54 @@
     <meta name={data.title} content={data.title} />
 </svelte:head>
 
-<div>
+<div class="p-2">
     <h1>{data.title}</h1>
-    <a href={data.url}>Article on Origin Site</a>
+    <a class="btn btn-primary btn-sm" href={data.url}>Article on Origin Site</a>
     <p class="content">
         {#each data.words as word, index}
             {#if word.spell === "." || word.spell === "!" || word.spell === "?" || word.spell === "\n"}
                 <span>{word.spell}</span><br />
             {:else if word.spell === ","}
                 <span>{word.spell}</span>
-            {:else if showTooltipForIndex === index}
-                {" "}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <span
-                    use:popperRef
-                    class={word_class(word)}
-                    on:click={() => openPopper(index)}>{word.spell}</span
-                >
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <div
-                    class="popper"
-                    use:popperContent={extraOpts}
-                    on:click={closePopper}
-                >
-                    {#if tooltipWord !== null}
-                        <h2>{tooltipWord.spell}</h2>
-                        <span>{tooltipWord.pronunciation}</span>
-                        <audio controls>
-                            <source
-                                src={"data:audio/mpeg;base64," +
-                                    tooltipWord.pronunciation_voice}
-                                type="audio/mpeg"
-                            />
-                        </audio>
-                        <p>
-                            {@html tooltipWord.meaning.replace(/\n/g, "<br />")}
-                        </p>
-                        <button on:click={addWord}>Add</button>
-                    {:else}
-                        <div class="lds-dual-ring" />
-                    {/if}
-                </div>
             {:else}
                 {" "}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <span
+                    id={`word-${index}`}
                     class={word_class(word)}
-                    on:click={() => openPopper(index)}>{word.spell}</span
+                    on:click={() => loadWord(index)}
+                >{word.spell}</span>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <Popover 
+                    placement="bottom" 
+                    target={`word-${index}`} 
+                    class="popper"
+                    bind:this={popoverRefs[index]}
+                    dismissible
                 >
+                    {#if wordsInfo[index] !== null}
+                        <h2>{wordsInfo[index]?.spell}</h2>
+                        <span>{wordsInfo[index]?.pronunciation}</span>
+                        <audio controls class="popper-audio">
+                            <source
+                                src={"data:audio/mpeg;base64," +
+                                    wordsInfo[index]?.pronunciation_voice}
+                                type="audio/mpeg"
+                            />
+                        </audio>
+                        <p>
+                            {@html wordsInfo[index]?.meaning.replace(/\n/g, "<br />")}
+                        </p>
+                        <Container>
+                            <Row>
+                                <Col xs="6"><Button on:click={() => addWord(index)}>Add</Button></Col>
+                                <Col xs="6"><Button color="danger" on:click={closeAllPopovers}>Close</Button></Col>
+                            </Row>
+                        </Container>
+                    {:else}
+                        <Spinner color="primary" class="loading"></Spinner>
+                    {/if}
+                </Popover>
             {/if}
         {/each}
     </p>
@@ -118,56 +118,15 @@
 <style>
     .word {
         cursor: pointer;
+        color: black;
+        text-decoration: none;
     }
     .word:hover {
         background: rgb(225, 225, 225);
     }
-    .popper {
-        background: gray;
-        max-width: 250px;
-        color: white;
-        font-family: Georgia, "Times New Roman", Times, serif;
-        border-radius: 6px;
-        padding: 8px;
-    }
-
-    .popper > h2 {
-        margin: 0;
-        font-weight: bold;
-    }
-
-    .popper > span {
-        font-style: italic;
-    }
-
-    .popper > button,
-    .popper > audio {
-        width: 100%;
-    }
-    .lds-dual-ring {
-        display: inline-block;
-        width: 80px;
-        height: 80px;
-        padding-right: 12px;
-    }
-    .lds-dual-ring:after {
-        content: " ";
+    .popper-audio {
         display: block;
-        width: 64px;
-        height: 64px;
-        margin: 8px;
-        border-radius: 50%;
-        border: 6px solid #fff;
-        border-color: #fff transparent #fff transparent;
-        animation: lds-dual-ring 1.2s linear infinite;
-    }
-    @keyframes lds-dual-ring {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg);
-        }
+        width: 200px;
     }
     .review-0 {
         background: rgb(255, 0, 0);
