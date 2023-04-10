@@ -5,6 +5,7 @@ import type { PageServerLoad } from './$types';
 export const load = (async ({ locals }) => {
     const [db_client, session] = await Promise.all([connect_database(), locals.getSession()]);
     try {
+        let email = session?.user?.email;
         let query_result = await db_client.query(`
         SELECT
             word.id as id,
@@ -16,7 +17,7 @@ export const load = (async ({ locals }) => {
         FROM word, user_word, "User"
         WHERE user_word.user_id = "User".id AND user_word.word_id = word.id AND "User".email=$1
         ORDER BY user_word.review_count DESC;
-    `, [session?.user?.email]);
+    `, [email]);
         const userWords: Array<UserWord> = query_result.rows.map((row) => {
             return {
                 id: row.id,

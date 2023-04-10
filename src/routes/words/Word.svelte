@@ -1,6 +1,7 @@
 <script lang="ts">
     import axios from "axios";
     import type { UserWord } from "$lib/types";
+    import { Button } from "sveltestrap"
 
     export let word: UserWord = {
         id: "",
@@ -17,11 +18,11 @@
     }
 </script>
 
-<div class="word">
-    <span class="spell">
+<tr class="word">
+    <th class="spell" scope="row">
         {word.spell}
-    </span>
-    <span class="pronunciation">
+    </th>
+    <td class="pronunciation">
         <div class="pronunciation-text">
             {word.pronunciation}
         </div>
@@ -33,38 +34,23 @@
                 />
             </audio>
         </div>
-    </span>
-    <span class="meaning">
+    </td>
+    <td class="meaning">
         {@html word.meaning.replace(/\n/g, "<br />")}
-    </span>
-    <span class="review_count">
+    </td>
+    <td></td>
+    <td class="review_count">
         {word.review_count}
-    </span>
-    <button on:click={review}>Review</button>
-</div>
+    </td>
+    <td><Button on:click={review}>Review</Button></td>
+</tr>
 
 <style>
     /* todo: style audio */
-    .word {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        margin-bottom: 16px;
-        justify-content: space-between;
-    }
-    .spell {
-        width: 50px;
-    }
     .pronunciation {
-        display: inline-block;
-        width: 100px;
         text-align: center;
     }
     .pronunciation-voice audio {
-        width: 100px;
-    }
-    .meaning {
-        display: inline-block;
-        width: 300px;
+        max-width: 100px;
     }
 </style>
