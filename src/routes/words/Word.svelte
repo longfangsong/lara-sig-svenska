@@ -6,7 +6,8 @@
     export let word: UserWord = {
         id: "",
         spell: "",
-        meaning: "",
+        meaning: [],
+        example_sentence: "",
         pronunciation: "",
         pronunciation_voice: "",
         review_count: 0,
@@ -36,9 +37,16 @@
         </div>
     </td>
     <td class="meaning">
-        {@html word.meaning.replace(/\n/g, "<br />")}
+        {#each word.meaning as partOfSpeech}
+            <div class="part-of-speech-name">{ partOfSpeech.name }</div>
+            {#each partOfSpeech.meanings as meaning}
+                <div class="meaning">{ meaning }</div>
+            {/each}
+        {/each}
     </td>
-    <td></td>
+    <td>
+        {word.example_sentence}
+    </td>
     <td class="review_count">
         {word.review_count}
     </td>
@@ -52,5 +60,9 @@
     }
     .pronunciation-voice audio {
         max-width: 100px;
+    }
+    .part-of-speech-name {
+        font-size: smaller;
+        color: rgb(0, 162, 255);
     }
 </style>

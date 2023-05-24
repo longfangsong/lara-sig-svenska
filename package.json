@@ -28,6 +28,7 @@
     "@auth/core": "^0.5.1",
     "@auth/sveltekit": "^0.3.0",
     "axios": "^1.3.2",
+    "bard-easy-api": "^1.0.2",
     "cheerio": "1.0.0-rc.12",
     "next-auth": "^4.20.1",
     "pg": "^8.9.0",

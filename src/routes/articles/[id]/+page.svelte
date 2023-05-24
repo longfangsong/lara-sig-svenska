@@ -23,6 +23,7 @@
         const word = data.words[index];
         let response = await axios.get(`/api/words?spell=${word.spell}`);
         wordsInfo[index] = response.data;
+        wordsInfo[index]!!.meaning = JSON.parse(wordsInfo[index]?.meaning as any as string);
         data.words.forEach((other_word, other_word_index) => {
             if (other_word.spell.toLowerCase() === word.spell.toLowerCase()) {
                 data.words[other_word_index].id = wordsInfo[index]?.id || null;
@@ -62,6 +63,7 @@
     <meta name={data.title} content={data.title} />
 </svelte:head>
 
+<!-- @ts-ignore -->
 <div class="p-2">
     <h1>{data.title}</h1>
     <a class="btn btn-primary btn-sm" href={data.url}>Article on Origin Site</a>
@@ -98,7 +100,12 @@
                             />
                         </audio>
                         <p>
-                            {@html wordsInfo[index]?.meaning.replace(/\n/g, "<br />")}
+                            {#each wordsInfo[index]?.meaning || [] as partOfSpeech}
+                                <div class="part-of-speech-name">{ partOfSpeech.name }</div>
+                                {#each partOfSpeech.meanings as meaning}
+                                    <div class="meaning">{ meaning }</div>
+                                {/each}
+                            {/each}
                         </p>
                         <Container>
                             <Row>
@@ -162,5 +169,10 @@
 
     .review-8 {
         background: rgb(0, 255, 0);
+    }
+
+    .part-of-speech-name {
+        font-size: smaller;
+        color: rgb(0, 162, 255);
     }
 </style>

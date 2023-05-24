@@ -12,6 +12,7 @@ export const load = (async ({ locals }) => {
             word.spell as spell,
             word.meaning as meaning,
             word.pronunciation as pronunciation,
+            word.example_sentence as example_sentence,
             encode(word.pronunciation_voice, 'base64') as pronunciation_voice,
             user_word.review_count as review_count
         FROM word, user_word, "User"
@@ -22,7 +23,8 @@ export const load = (async ({ locals }) => {
             return {
                 id: row.id,
                 spell: row.spell,
-                meaning: row.meaning,
+                meaning: JSON.parse(row.meaning),
+                example_sentence: row.example_sentence,
                 pronunciation: row.pronunciation,
                 pronunciation_voice: row.pronunciation_voice,
                 review_count: row.review_count

@@ -14,11 +14,17 @@ export interface Article extends ArticleMeta {
     words: Array<WordInArticle>;
 }
 
+export interface PartOfSpeech {
+    name: string,
+    meanings: Array<string>,
+}
+
 export interface Word {
     id: string;
     spell: string;
     pronunciation: string;
-    meaning: string;
+    example_sentence: string,
+    meaning: Array<PartOfSpeech>;
     pronunciation_voice: string;
 }
 

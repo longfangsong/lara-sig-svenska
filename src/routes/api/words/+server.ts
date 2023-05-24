@@ -1,17 +1,92 @@
 import { connect_database } from "$lib/server/database";
-import { load } from "cheerio";
+import { load, type CheerioAPI } from "cheerio";
 import qs from 'querystring';
 import type { RequestEvent } from "./$types";
+import { ChatSession } from "bard-easy-api";
+import type { Word, PartOfSpeech } from "$lib/types";
 
-async function fetch_meaning(word: string): Promise<[string, string, string] | null> {
+interface AnalyzingWord {
+    origin_spell: string,
+    pronunciation: string,
+    part_of_speeches: Array<PartOfSpeech>
+}
+
+function isWord(object: AnalyzingWord | PartOfSpeech): object is AnalyzingWord {
+    return (object as AnalyzingWord).origin_spell !== undefined;
+}
+
+async function bard_meaning(word: string): Promise<AnalyzingWord> {
+    let session = await ChatSession.new();
+    let response = await session!.send(`look up Swedish word: "${word}" in dictionary, output the result in this format: {"spell": "<word>", "pronunciation": "<IPA of the word>", "part_of_speech": "<part of speech, in abbreviation like adj, adv, v, n, etc>", "meaning": "<English meaning>"}`);
+    const firstOpenBraceIndex = response.indexOf("{");
+    const firstCloseBraceIndex = response.lastIndexOf("}");
+    const jsonString = response.slice(firstOpenBraceIndex, firstCloseBraceIndex + 1);
+    const jsonObject = JSON.parse(jsonString);
+    let pronunciation = jsonObject.pronunciation;
+    if (pronunciation.startsWith('/')) {
+        pronunciation = pronunciation.replace('/', '');
+    }
+    if (!pronunciation.startsWith('[')) {
+        pronunciation = `[${pronunciation}]`;
+    }
+    return {
+        origin_spell: word,
+        pronunciation: pronunciation,
+        part_of_speeches: [
+            { name: jsonObject.part_of_speech, meanings: [jsonObject.meaning] }
+        ]
+    }
+}
+
+async function fetch_meaning(word: string): Promise<[string, string, string]> {
     const url = `https://www.dict.com/swedish-english/${encodeURIComponent(word)}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/113.0',
+            'Pragma': 'no-cache'
+        }
+    });
     const $ = load(await response.text());
-    const origin_spell = $(".entry .lex_ful_entr").text();
-    const pronunciation = $(".entry .lex_ful_pron").text();
-    const meaning_element = $(".entry tbody");
-    const meaning = meaning_element.children(":not(.head)").map((_, it) => $(it).text()).toArray().join('\n');
-    return [origin_spell, pronunciation.trim(), meaning];
+    let analyzed = analyze($);
+    if (analyzed.part_of_speeches.length == 0) {
+        analyzed = await bard_meaning(word);
+    }
+    return [analyzed.origin_spell, analyzed.pronunciation, JSON.stringify(analyzed.part_of_speeches)];
+}
+
+function analyze($: CheerioAPI): AnalyzingWord {
+    const rows = $(".entry td>span");
+    let result: Word = {
+        origin_spell: "",
+        pronunciation: "",
+        part_of_speeches: []
+    }
+    let current: Word | PartOfSpeech = result;
+    for (let span of rows) {
+        if (span.attribs.class.includes("lex_ful_entr")) {
+            result.origin_spell = $(span).text().trim();
+        } else if (span.attribs.class.includes("lex_ful_pron")) {
+            result.pronunciation = $(span).text().trim();
+        } else if (span.attribs.class.includes("lex_ful_morf")) {
+            if ($(span).text().trim() == "phr") break;
+            if (!isWord(current)) {
+                result.part_of_speeches.push(current);
+            }
+            current = {
+                name: $(span).text().trim(),
+                meanings: []
+            }
+        } else if (span.attribs.class.includes("lex_ful_tran")) {
+            if (isWord(current)) {
+                console.warn(`lex_ful_tran should not be in Word for ${result}`);
+            }
+            (current as PartOfSpeech).meanings.push($(span).text().trim());
+        }
+    }
+    if (!isWord(current)) {
+        result.part_of_speeches.push(current);
+    }
+    return result;
 }
 
 async function fetch_pronunciation(word: string): Promise<Buffer> {
