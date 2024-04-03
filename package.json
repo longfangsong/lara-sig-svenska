@@ -13,7 +13,7 @@
     "@popperjs/core": "^2.11.6",
     "@sveltejs/adapter-auto": "^2.0.0",
     "@sveltejs/adapter-vercel": "2",
-    "@sveltejs/kit": "^1.5.5",
+    "@sveltejs/kit": "^1.15.2",
     "@types/node": "^18.14.6",
     "@types/pg": "^8.6.6",
     "@typescript-eslint/eslint-plugin": "^5.54.1",
@@ -22,15 +22,15 @@
     "svelte": "3.55.0",
     "svelte-check": "2.10.2",
     "typescript": "4.9.4",
-    "vite": "4.0.1"
+    "vite": "4.5.3"
   },
   "dependencies": {
     "@auth/core": "^0.5.1",
     "@auth/sveltekit": "^0.3.0",
-    "axios": "^1.3.2",
+    "axios": "^1.6.0",
     "bard-easy-api": "^1.0.2",
     "cheerio": "1.0.0-rc.12",
-    "next-auth": "^4.20.1",
+    "next-auth": "^4.24.5",
     "pg": "^8.9.0",
     "sveltestrap": "^5.10.0"
   },
