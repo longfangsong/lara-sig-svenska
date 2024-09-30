@@ -1,6 +1,6 @@
 -- Migration number: 0001 	 2024-09-27T11:57:22.545Z
 
-CREATE TABLE IF NOT EXISTS Article (
+CREATE TABLE Article (
     id CHAR(36) PRIMARY KEY,
     title text,
     content text,
@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS Article (
 CREATE TABLE Word (
     id CHAR(36) PRIMARY KEY,
     lemma VARCHAR(255) NOT NULL,
+    part_of_speech VARCHAR(32),
     phonetic VARCHAR(255) NOT NULL,
     phonetic_voice BLOB,
     phonetic_url VARCHAR(2048)
@@ -29,11 +30,12 @@ CREATE INDEX idx_WordIndex_word_id ON WordIndex(word_id);
 
 CREATE TABLE Lexeme (
     id CHAR(36) PRIMARY KEY,
-    part_of_speech VARCHAR(32),
     word_id CHAR(36) NOT NULL REFERENCES Word(id),
     definition TEXT NOT NULL,
     example TEXT,
-    example_meaning TEXT
+    example_meaning TEXT,
+    -- lexin-swe | folkets-lexikon | AI
+    source VARCHAR(16) NOT NULL
 );
 CREATE INDEX idx_Lexeme_word_id ON Lexeme(word_id);
 
