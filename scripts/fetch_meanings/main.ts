@@ -3,6 +3,13 @@ import fetch from "node-fetch";
 import { pipeline } from "stream/promises";
 import { load } from "cheerio";
 
+interface Lexeme {
+  definition: string;
+  example: string | null;
+  example_meaning: string | null;
+  source: string;
+}
+
 async function fetchFile(filePath: string, url: string) {
   if (!fs.existsSync(filePath)) {
     try {
@@ -29,9 +36,9 @@ function formatNullableString(value: string | null) {
 
 function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
   const phonetic = $(element).children("Phonetic");
-  let file = phonetic.attr("file");
-  if (file && !file.startsWith("v2")) {
-    file = file
+  let phoneticFile = phonetic.attr("file");
+  if (phoneticFile && !phoneticFile.startsWith("v2")) {
+    phoneticFile = phoneticFile
       .replace(/ö/g, "0366")
       .replace(/å/g, "0345")
       .replace(/ä/g, "0344");
@@ -41,16 +48,11 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
     part_of_speech: $(element).attr("type")!,
     phonetic: phonetic.children().remove().end().text().trim(),
     phoneticUrl: phonetic.attr("file")
-      ? `http://lexin.nada.kth.se/sound/${file}`
+      ? `http://lexin.nada.kth.se/sound/${phoneticFile}`
       : null,
     indexes: [] as Array<string>,
     inflections: [] as Array<{ form: string; value: string }>,
-    lexemes: [] as Array<{
-      definition: string;
-      example: string | null;
-      example_meaning: string | null;
-      source: string;
-    }>,
+    lexemes: [] as Array<Lexeme>,
   };
   $(element)
     .find("Inflection")
@@ -73,7 +75,9 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
     .find("Lexeme")
     .each((_, lexemeElement) => {
       lemmaInfo.lexemes.push({
-        definition: $(lexemeElement).find("Definition").text(),
+        definition:
+          $(lexemeElement).find("Definition").text() ||
+          $(lexemeElement).find("Comment[Type='Def']").text(),
         example: $(lexemeElement).find("Example").text() || null,
         example_meaning: null,
         source: "lexin-swe",
@@ -92,7 +96,7 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
       lemmaInfo.inflections.push({ form: "presens", value: wholeFrom });
       break;
     case "adj.":
-      lemmaInfo.inflections.push({ form: "presens", value: wholeFrom });
+      lemmaInfo.inflections.push({ form: "nform", value: wholeFrom });
       break;
   }
   if (lemmaInfo.indexes.length === 0) {
@@ -101,11 +105,39 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
   return lemmaInfo;
 }
 
+function extractEnglishLexemes($: cheerio.Root, lemma: string): Array<Lexeme> {
+  let lexemes: Array<Lexeme> = [];
+  const safeLemmaName = lemma.replace("'", "&amp;#39;");
+  const englishWords = $("word[value='" + safeLemmaName + "']");
+  englishWords.each((_, englishWord) => {
+    const englishDefinition =
+      $(englishWord).find("definition").children("translation").length > 0
+        ? $(englishWord)
+            .find("definition")
+            .children("translation")
+            .attr("value")
+        : $(englishWord).children("translation").attr("value");
+    if (englishDefinition) {
+      const englishExample = $(englishWord).find("example");
+      const example = englishExample.attr("value") || null;
+      const exampleTranslation =
+        englishExample.children("translation").attr("value") || null;
+      lexemes.push({
+        definition: englishDefinition,
+        example: example,
+        example_meaning: exampleTranslation,
+        source: "folkets-lexikon",
+      });
+    }
+  });
+  return lexemes;
+}
+
 function writeBatch(
   initSqlFile: fs.WriteStream,
   wordBuffer: string,
   wordIndexBuffer: string,
-  lexemeBuffer: string
+  lexemeBuffer: string,
 ) {
   if (wordBuffer.endsWith(", ")) {
     wordBuffer = wordBuffer.slice(0, -2);
@@ -118,17 +150,17 @@ function writeBatch(
   }
   if (wordBuffer) {
     initSqlFile.write(
-      `INSERT INTO Word (id, lemma, part_of_speech, phonetic, phonetic_voice, phonetic_url) VALUES ${wordBuffer};\n`
+      `INSERT INTO Word (id, lemma, part_of_speech, phonetic, phonetic_voice, phonetic_url) VALUES ${wordBuffer};\n`,
     );
   }
   if (wordIndexBuffer) {
     initSqlFile.write(
-      `INSERT INTO WordIndex (id, word_id, spell, form) VALUES ${wordIndexBuffer};\n`
+      `INSERT INTO WordIndex (id, word_id, spell, form) VALUES ${wordIndexBuffer};\n`,
     );
   }
   if (lexemeBuffer) {
     initSqlFile.write(
-      `INSERT INTO Lexeme (id, word_id, definition, example, example_meaning, source) VALUES ${lexemeBuffer};\n`
+      `INSERT INTO Lexeme (id, word_id, definition, example, example_meaning, source) VALUES ${lexemeBuffer};\n`,
     );
   }
 }
@@ -156,34 +188,18 @@ async function main() {
     `000${initSqlFileId}_import_data.sql`,
     {
       flags: "w",
-    }
+    },
   );
   $swe("Lemma").each((index, element) => {
     const lemmaInfo = extractLemmaInfo($swe, element);
-    const safeLemmaName = lemmaInfo.lemma.replace("'", "&amp;#39;");
-    const englishWord = $en("word[value='" + safeLemmaName + "']");
-    const englishDefinition =
-      englishWord.find("definition").length > 0
-        ? englishWord.find("definition").children("translation").attr("value")
-        : englishWord.children("translation").attr("value");
-    if (englishDefinition) {
-      const englishExample = englishWord.find("example");
-      const example = englishExample.attr("value") || null;
-      const exampleTranslation =
-        englishExample.children("translation").attr("value") || null;
-      lemmaInfo.lexemes.push({
-        definition: englishDefinition,
-        example: example,
-        example_meaning: exampleTranslation,
-        source: "folkets-lexikon",
-      });
-    }
+    const englishLexemes = extractEnglishLexemes($en, lemmaInfo.lemma);
+    lemmaInfo.lexemes.push(...englishLexemes);
     const wordId = crypto.randomUUID();
     wordBuffer += `('${wordId}', '${lemmaInfo.lemma.replace("'", "''")}', '${
       lemmaInfo.part_of_speech
     }', '${lemmaInfo.phonetic.replace(
       "'",
-      "''"
+      "''",
     )}', NULL, ${formatNullableString(lemmaInfo.phoneticUrl)}), `;
     for (const index of lemmaInfo.indexes) {
       const indexId = crypto.randomUUID();
@@ -192,7 +208,7 @@ async function main() {
           ?.form || null;
       wordIndexBuffer += `('${indexId}', '${wordId}', '${index.replace(
         "'",
-        "''"
+        "''",
       )}', ${formatNullableString(form)}), `;
     }
     for (const lexeme of lemmaInfo.lexemes) {
@@ -200,9 +216,9 @@ async function main() {
       const example = lexeme.example || null;
       lexemeBuffer += `('${lexemeId}', '${wordId}', '${lexeme.definition.replace(
         "'",
-        "''"
+        "''",
       )}', ${formatNullableString(example)}, ${formatNullableString(
-        lexeme.example_meaning
+        lexeme.example_meaning,
       )}, '${lexeme.source}'), `;
     }
     writeBatch(initSqlFile, wordBuffer, wordIndexBuffer, lexemeBuffer);
@@ -219,7 +235,7 @@ async function main() {
         `${initSqlFileId.toString().padStart(4, "0")}_import_data.sql`,
         {
           flags: "w",
-        }
+        },
       );
     }
   });
