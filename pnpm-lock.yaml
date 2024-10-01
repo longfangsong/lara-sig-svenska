@@ -49,6 +49,9 @@ devDependencies:
   eslint-plugin-next-on-pages:
     specifier: ^1.13.3
     version: 1.13.3(eslint@8.0.0)
+  miniflare:
+    specifier: ^3.20240925.0
+    version: 3.20240925.0
   postcss:
     specifier: ^8
     version: 8.0.0

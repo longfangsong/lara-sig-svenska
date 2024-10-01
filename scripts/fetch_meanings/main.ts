@@ -76,7 +76,7 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
     .each((_, lexemeElement) => {
       lemmaInfo.lexemes.push({
         definition:
-          $(lexemeElement).find("Definition").text() ||
+          $(lexemeElement).children("Definition").text() ||
           $(lexemeElement).find("Comment[Type='Def']").text(),
         example: $(lexemeElement).find("Example").text() || null,
         example_meaning: null,

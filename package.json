@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --experimental-https -p 443",
-    "test": "npx playwright test",
+    "test": "vitest",
+    "ui-test": "npx playwright test",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
