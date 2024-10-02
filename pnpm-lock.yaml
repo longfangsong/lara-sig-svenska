@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  debounce:
+    specifier: ^2.1.1
+    version: 2.1.1
   flowbite-react:
     specifier: ^0.10.1
     version: 0.10.1(react-dom@18.0.0)(react@18.0.0)(tailwindcss@3.4.1)
@@ -31,6 +34,9 @@ devDependencies:
   '@playwright/test':
     specifier: ^1.47.2
     version: 1.47.2
+  '@types/debounce':
+    specifier: ^1.2.4
+    version: 1.2.4
   '@types/node':
     specifier: ^20
     version: 20.0.0
@@ -49,9 +55,6 @@ devDependencies:
   eslint-plugin-next-on-pages:
     specifier: ^1.13.3
     version: 1.13.3(eslint@8.0.0)
-  miniflare:
-    specifier: ^3.20240925.0
-    version: 3.20240925.0
   postcss:
     specifier: ^8
     version: 8.0.0
@@ -1141,6 +1144,10 @@ packages:
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
     dev: true
 
+  /@types/debounce@1.2.4:
+    resolution: {integrity: sha512-jBqiORIzKDOToaF63Fm//haOCHuwQuLa2202RK4MozpA6lh93eCBc+/8+wZn5OzjJt3ySdc+74SXWXB55Ewtyw==}
+    dev: true
+
   /@types/estree-jsx@1.0.5:
     resolution: {integrity: sha512-52CcUVNFyfb1A2ALocQw/Dd1BQFNmSdkuC3BkZ6iqhdMfQz7JWOFRuJFloOzjk+6WijU56m9oKXFAXc7o3Towg==}
     dependencies:
@@ -2067,6 +2074,11 @@ packages:
 
   /debounce@2.1.0:
     resolution: {integrity: sha512-OkL3+0pPWCqoBc/nhO9u6TIQNTK44fnBnzuVtJAbp13Naxw9R6u21x+8tVTka87AhDZ3htqZ2pSSsZl9fqL2Wg==}
+    engines: {node: '>=18'}
+    dev: false
+
+  /debounce@2.1.1:
+    resolution: {integrity: sha512-+xRWxgel9LgTC4PwKlm7TJUK6B6qsEK77NaiNvXmeQ7Y3e6OVVsBC4a9BSptS/mAYceyAz37Oa8JTTuPRft7uQ==}
     engines: {node: '>=18'}
     dev: false
 

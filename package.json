@@ -15,6 +15,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts"
   },
   "dependencies": {
+    "debounce": "^2.1.1",
     "flowbite-react": "^0.10.1",
     "next": "14.2.13",
     "react": "^18",
@@ -25,6 +26,7 @@
     "@cloudflare/vitest-pool-workers": "^0.5.12",
     "@cloudflare/workers-types": "^4.20240925.0",
     "@playwright/test": "^1.47.2",
+    "@types/debounce": "^1.2.4",
     "@types/node": "^20",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18",
