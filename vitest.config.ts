@@ -24,7 +24,7 @@ export default defineWorkersProject(async () => {
       setupFiles: ["./tests/apply-migrations.ts"],
       poolOptions: {
         workers: {
-          wrangler: { configPath: "./wrangler.toml" },
+          wrangler: { configPath: "./wrangler.test.toml" },
           miniflare: {
             bindings: { TEST_MIGRATIONS: filteredMigrations },
             d1Databases: {
@@ -33,6 +33,9 @@ export default defineWorkersProject(async () => {
           },
         },
         experimentalJsonConfig: false,
+      },
+      alias: {
+        "@": path.resolve(__dirname, "src"),
       },
     },
   };

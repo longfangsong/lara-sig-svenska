@@ -77,7 +77,8 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
       lemmaInfo.lexemes.push({
         definition:
           $(lexemeElement).children("Definition").text() ||
-          $(lexemeElement).find("Comment[Type='Def']").text(),
+          $(lexemeElement).children("Comment[Type='Def']").text() ||
+          $(lexemeElement).children("Gramcom").text(),
         example: $(lexemeElement).find("Example").text() || null,
         example_meaning: null,
         source: "lexin-swe",

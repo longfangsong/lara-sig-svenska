@@ -3,5 +3,4 @@ declare module "cloudflare:test" {
     DB: D1Database;
     TEST_MIGRATIONS: D1Migration[];
   }
-  const env: ProvidedEnv;
 }
