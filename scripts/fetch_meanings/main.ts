@@ -57,7 +57,10 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
   $(element)
     .find("Inflection")
     .each((_, inflectionElement) => {
-      if ($(inflectionElement).text() !== "–") {
+      if (
+        $(inflectionElement).attr("form") !== undefined &&
+        $(inflectionElement).text() !== "–"
+      ) {
         lemmaInfo.inflections.push({
           form: $(inflectionElement).attr("form")!,
           value: $(inflectionElement).text(),
@@ -103,6 +106,7 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
   if (lemmaInfo.indexes.length === 0) {
     lemmaInfo.indexes.push(wholeFrom);
   }
+  lemmaInfo.indexes = [...new Set(lemmaInfo.indexes)];
   return lemmaInfo;
 }
 
@@ -202,16 +206,28 @@ async function main() {
       "'",
       "''",
     )}', NULL, ${formatNullableString(lemmaInfo.phoneticUrl)}), `;
+
     for (const index of lemmaInfo.indexes) {
-      const indexId = crypto.randomUUID();
-      const form =
-        lemmaInfo.inflections.find((inflection) => inflection.value === index)
-          ?.form || null;
-      wordIndexBuffer += `('${indexId}', '${wordId}', '${index.replace(
-        "'",
-        "''",
-      )}', ${formatNullableString(form)}), `;
+      const forms = lemmaInfo.inflections
+        .filter((inflection) => inflection.value === index)
+        .map((it) => it.form);
+      if (forms.length === 0) {
+        const indexId = crypto.randomUUID();
+        wordIndexBuffer += `('${indexId}', '${wordId}', '${index.replace(
+          "'",
+          "''",
+        )}', NULL), `;
+      } else {
+        for (const form of forms) {
+          const indexId = crypto.randomUUID();
+          wordIndexBuffer += `('${indexId}', '${wordId}', '${index.replace(
+            "'",
+            "''",
+          )}', ${formatNullableString(form)}), `;
+        }
+      }
     }
+
     for (const lexeme of lemmaInfo.lexemes) {
       const lexemeId = crypto.randomUUID();
       const example = lexeme.example || null;
@@ -226,7 +242,7 @@ async function main() {
     wordBuffer = "";
     wordIndexBuffer = "";
     lexemeBuffer = "";
-    if (index % 100 === 99) {
+    if (index % 500 === 499) {
       console.log(lemmaInfo.lemma);
     }
     if (index % 5000 === 4999) {
