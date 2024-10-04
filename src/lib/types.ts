@@ -1,7 +1,10 @@
 export namespace DBTypes {
-  export interface Article {
+  export interface ArticleMeta {
     id: string;
     title: string;
+  }
+
+  export interface Article extends ArticleMeta {
     content: string;
     create_time: number;
     url: string;

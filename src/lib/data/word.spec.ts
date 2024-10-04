@@ -1,8 +1,9 @@
 import { expect, test, describe } from "vitest";
 import { env } from "cloudflare:test";
-import { getWord, searchWord } from "./data";
+import { getWord, searchWord } from "./word";
+import { Word } from "../types";
 
-describe("Test data fetching", () => {
+describe("Test word fetching", () => {
   test("should be able to search the word (full match)", async () => {
     const result = await searchWord(env.DB, "a");
     expect(result.length).toBe(10);
@@ -23,7 +24,7 @@ describe("Test data fetching", () => {
   test("should be able to get the word", async () => {
     const searchResult = await searchWord(env.DB, "barn");
     const wordId = searchResult[0].id;
-    const result = await getWord(env.DB, wordId);
+    const result: Word = await getWord(env.DB, wordId);
     expect(result).not.toBeNull();
     expect(result?.lemma).toBe("barn");
     expect(result?.part_of_speech).toBe("subst.");
