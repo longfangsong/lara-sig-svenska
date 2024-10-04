@@ -110,10 +110,18 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
   return lemmaInfo;
 }
 
-function extractEnglishLexemes($: cheerio.Root, lemma: string): Array<Lexeme> {
+function extractEnglishLexemes(
+  $: cheerio.Root,
+  inflectionMap: Map<string, cheerio.Element[]>,
+  lemma: string,
+): Array<Lexeme> {
   let lexemes: Array<Lexeme> = [];
   const safeLemmaName = lemma.replace("'", "&amp;#39;");
-  const englishWords = $("word[value='" + safeLemmaName + "']");
+  let englishWords = $("word[value='" + safeLemmaName + "']");
+  if (englishWords.length === 0) {
+    // Use the map to find matching words
+    englishWords = $(inflectionMap.get(safeLemmaName) || []);
+  }
   englishWords.each((_, englishWord) => {
     const englishDefinition =
       $(englishWord).find("definition").children("translation").length > 0
@@ -136,6 +144,24 @@ function extractEnglishLexemes($: cheerio.Root, lemma: string): Array<Lexeme> {
     }
   });
   return lexemes;
+}
+
+function buildInflectionMap($: cheerio.Root) {
+  const inflectionMap = new Map<string, cheerio.Element[]>();
+  $("word").each((_, word) => {
+    $(word)
+      .find("inflection")
+      .each((_, infl) => {
+        const inflValue = $(infl).attr("value");
+        if (inflValue) {
+          if (!inflectionMap.has(inflValue)) {
+            inflectionMap.set(inflValue, []);
+          }
+          inflectionMap.get(inflValue)!.push(word);
+        }
+      });
+  });
+  return inflectionMap;
 }
 
 function writeBatch(
@@ -188,6 +214,7 @@ async function main() {
   const enXml = fs.readFileSync(enFilePath, "utf-8");
   const $en = load(enXml);
 
+  const inflectionMap = buildInflectionMap($en);
   let initSqlFileId = 2;
   let initSqlFile = fs.createWriteStream(
     `000${initSqlFileId}_import_data.sql`,
@@ -197,7 +224,11 @@ async function main() {
   );
   $swe("Lemma").each((index, element) => {
     const lemmaInfo = extractLemmaInfo($swe, element);
-    const englishLexemes = extractEnglishLexemes($en, lemmaInfo.lemma);
+    const englishLexemes = extractEnglishLexemes(
+      $en,
+      inflectionMap,
+      lemmaInfo.lemma,
+    );
     lemmaInfo.lexemes.push(...englishLexemes);
     const wordId = crypto.randomUUID();
     wordBuffer += `('${wordId}', '${lemmaInfo.lemma.replace("'", "''")}', '${
