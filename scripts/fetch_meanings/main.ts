@@ -149,11 +149,13 @@ function extractEnglishLexemes(
 function buildInflectionMap($: cheerio.Root) {
   const inflectionMap = new Map<string, cheerio.Element[]>();
   $("word").each((_, word) => {
+    const found = new Set<string>();
     $(word)
       .find("inflection")
       .each((_, infl) => {
         const inflValue = $(infl).attr("value");
-        if (inflValue) {
+        if (inflValue && !found.has(inflValue)) {
+          found.add(inflValue);
           if (!inflectionMap.has(inflValue)) {
             inflectionMap.set(inflValue, []);
           }
