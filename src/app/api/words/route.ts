@@ -1,4 +1,4 @@
-import { searchWord } from "@/lib/data";
+import { searchWord } from "@/lib/data/word";
 import { getRequestContext } from "@cloudflare/next-on-pages";
 import { NextResponse, type NextRequest } from "next/server";
 export const runtime = "edge";

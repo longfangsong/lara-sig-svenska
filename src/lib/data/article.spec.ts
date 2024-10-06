@@ -1,6 +1,6 @@
 import { expect, test, describe, beforeAll } from "vitest";
 import { env } from "cloudflare:test";
-import { getArticle, getArticleMetas } from "./article";
+import { getArticle, getArticleMetas, toWordsAndPunctuations } from "./article";
 
 describe("Test article fetching", () => {
   beforeAll(async () => {
@@ -40,6 +40,7 @@ describe("Test article fetching", () => {
         .run(),
     ]);
   });
+
   test("should be able to list the article metas", async () => {
     let metas = await getArticleMetas(env.DB, 2, 0);
     expect(metas.length).toBe(2);
@@ -61,5 +62,18 @@ describe("Test article fetching", () => {
     expect(article?.create_time).toBe(3);
     expect(article?.url).toBe("https://example.com");
     expect(article?.voice_url).toBe("https://example.com/voice.mp3");
+  });
+
+  test("should be seperate article into words and punctuations", async () => {
+    const article =
+      'This is a test article. This is a test article...This is a test article! This is a test article? - This is a test article. "This is a test article"';
+    const wordsAndPunctuations = toWordsAndPunctuations(article);
+    expect(wordsAndPunctuations.length).toBe(6);
+    expect(wordsAndPunctuations[0].length).toBe(6);
+    expect(wordsAndPunctuations[0][5]).toBe(".");
+    expect(wordsAndPunctuations[1][5]).toBe("...");
+    expect(wordsAndPunctuations[4][0]).toBe("-");
+    expect(wordsAndPunctuations[5][0]).toBe('"');
+    expect(wordsAndPunctuations[5][6]).toBe('"');
   });
 });

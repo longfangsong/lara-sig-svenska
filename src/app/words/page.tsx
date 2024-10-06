@@ -3,7 +3,7 @@
 import { Word, WordSearchResult } from "@/lib/types";
 import debounce from "debounce";
 import { FloatingLabel, HR, Table, TableCell } from "flowbite-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { WordDetail } from "../_components/WordDetail";
 
 export default function Words() {
@@ -39,14 +39,14 @@ export default function Words() {
               <TableCell className="py-1">{word.lemma}</TableCell>
               <TableCell className="py-1">
                 {word.definitions.map((definition, index) => (
-                  <>
+                  <React.Fragment key={definition}>
                     <p>{definition}</p>
                     {index !== word.definitions.length - 1 ? (
                       <HR className="m-1" />
                     ) : (
                       <></>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </TableCell>
             </Table.Row>
