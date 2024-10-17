@@ -34,9 +34,13 @@ function formatNullableString(value: string | null) {
   return "NULL";
 }
 
-function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
+function extractLemmaInfo(
+  $: cheerio.Root,
+  element: cheerio.Element,
+  polyfill: PolyfillData,
+) {
   const phonetic = $(element).children("Phonetic");
-  let phoneticFile = phonetic.attr("file");
+  let phoneticFile = phonetic.attr("File");
   if (phoneticFile && !phoneticFile.startsWith("v2")) {
     phoneticFile = phoneticFile
       .replace(/ö/g, "0366")
@@ -44,10 +48,10 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
       .replace(/ä/g, "0344");
   }
   const lemmaInfo = {
-    lemma: $(element).attr("value")!,
-    part_of_speech: $(element).attr("type")!,
+    lemma: $(element).attr("Value")!,
+    part_of_speech: $(element).attr("Type")!,
     phonetic: phonetic.children().remove().end().text().trim(),
-    phoneticUrl: phonetic.attr("file")
+    phoneticUrl: phonetic.attr("File")
       ? `http://lexin.nada.kth.se/sound/${phoneticFile}`
       : null,
     indexes: [] as Array<string>,
@@ -58,20 +62,39 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
     .find("Inflection")
     .each((_, inflectionElement) => {
       if (
-        $(inflectionElement).attr("form") !== undefined &&
+        $(inflectionElement).attr("Form") !== undefined &&
         $(inflectionElement).text() !== "–"
       ) {
         lemmaInfo.inflections.push({
-          form: $(inflectionElement).attr("form")!,
+          form: $(inflectionElement).attr("Form")!,
           value: $(inflectionElement).text(),
         });
       }
     });
+  if (lemmaInfo.part_of_speech === "pron.") {
+    const forms = polyfill.pron_inflection.find(
+      (it) => it.nform === lemmaInfo.lemma,
+    );
+    if (forms !== undefined) {
+      lemmaInfo.inflections.push({
+        form: "nform",
+        value: forms.nform,
+      });
+      lemmaInfo.inflections.push({
+        form: "tform",
+        value: forms?.tform,
+      });
+      lemmaInfo.inflections.push({
+        form: "aform",
+        value: forms?.aform,
+      });
+    }
+  }
 
   $(element)
     .find("Index")
     .each((_, indexElement) => {
-      lemmaInfo.indexes.push($(indexElement).attr("value")!);
+      lemmaInfo.indexes.push($(indexElement).attr("Value")!);
     });
 
   $(element)
@@ -110,27 +133,50 @@ function extractLemmaInfo($: cheerio.Root, element: cheerio.Element) {
   return lemmaInfo;
 }
 
-function extractEnglishLexemes(
+const SV_EN_TYPE_MAP = {
+  "adv.": ["ab"],
+  "förk.": ["abbrev"],
+  "obestämd artikel": ["article"],
+  "pron.": ["hp", "pn"],
+  infinitivmärke: ["ie"],
+  interj: ["in"],
+  "adj.": ["jj"],
+  "konj.": ["kn"],
+  "subst.": ["nn"],
+  "noun.": ["nn"],
+  namn: ["pm", "pn"],
+  "prep.": ["pp"],
+  förled: ["prefix"],
+  // "": "ps",
+  "räkn.": ["rg"],
+  // "": "sn",
+  // "": "suffix",
+  verb: ["vb"],
+};
+function collectEnglishLexemes(
   $: cheerio.Root,
-  inflectionMap: Map<string, cheerio.Element[]>,
-  lemma: string,
+  enType: Array<string> | null,
+  englishWords: cheerio.Cheerio,
 ): Array<Lexeme> {
   let lexemes: Array<Lexeme> = [];
-  const safeLemmaName = lemma.replace("'", "&amp;#39;");
-  let englishWords = $("word[value='" + safeLemmaName + "']");
-  if (englishWords.length === 0) {
-    // Use the map to find matching words
-    englishWords = $(inflectionMap.get(safeLemmaName) || []);
-  }
   englishWords.each((_, englishWord) => {
+    const englishClass = $(englishWord).attr("class");
+    const correctEnglishType =
+      enType?.find((it) => it === englishClass) !== undefined;
     const englishDefinition =
       $(englishWord).find("definition").children("translation").length > 0
         ? $(englishWord)
             .find("definition")
             .children("translation")
-            .attr("value")
-        : $(englishWord).children("translation").attr("value");
-    if (englishDefinition) {
+            .map((_, translation) => $(translation).attr("value"))
+            .get()
+            .join(", ")
+        : $(englishWord)
+            .children("translation")
+            .map((_, translation) => $(translation).attr("value"))
+            .get()
+            .join(", ");
+    if (correctEnglishType && englishDefinition) {
       const englishExample = $(englishWord).find("example");
       const example = englishExample.attr("value") || null;
       const exampleTranslation =
@@ -143,6 +189,22 @@ function extractEnglishLexemes(
       });
     }
   });
+  return lexemes;
+}
+function extractEnglishLexemes(
+  $: cheerio.Root,
+  inflectionMap: Map<string, cheerio.Element[]>,
+  lemma: string,
+  type: keyof typeof SV_EN_TYPE_MAP | null | undefined,
+): Array<Lexeme> {
+  const enType = type ? SV_EN_TYPE_MAP[type] : null;
+  const safeLemmaName = lemma.replace("'", "&amp;#39;");
+  let englishWords = $("word[value='" + safeLemmaName + "']");
+  let lexemes = collectEnglishLexemes($, enType, englishWords);
+  if (lexemes.length === 0) {
+    englishWords = $(inflectionMap.get(safeLemmaName) || []);
+    lexemes = collectEnglishLexemes($, enType, englishWords);
+  }
   return lexemes;
 }
 
@@ -197,6 +259,20 @@ function writeBatch(
     );
   }
 }
+type PolyfillData = {
+  pron_inflection: Array<{
+    nform: string;
+    tform: string;
+    aform: string;
+  }>;
+};
+
+function loadPolyfill(polyfillJsonPath: string): PolyfillData {
+  const polyfillJson = fs.readFileSync(polyfillJsonPath, "utf-8");
+  let polyfillData = JSON.parse(polyfillJson);
+  console.log("Polyfill data loaded successfully");
+  return polyfillData;
+}
 
 async function main() {
   let wordBuffer = "";
@@ -212,9 +288,15 @@ async function main() {
     fetchFile(enFilePath, enUrl),
   ]);
   const sweXml = fs.readFileSync(sweFilePath, "utf-8");
-  const $swe = load(sweXml);
+  const $swe = load(sweXml, {
+    xmlMode: true,
+  });
   const enXml = fs.readFileSync(enFilePath, "utf-8");
-  const $en = load(enXml);
+  const $en = load(enXml, {
+    xmlMode: true,
+  });
+  const polyfillJsonPath = "polyfill.json";
+  const polyfill = loadPolyfill(polyfillJsonPath);
 
   const inflectionMap = buildInflectionMap($en);
   let initSqlFileId = 2;
@@ -225,11 +307,18 @@ async function main() {
     },
   );
   $swe("Lemma").each((index, element) => {
-    const lemmaInfo = extractLemmaInfo($swe, element);
+    if ($swe(element).find("Reference[Type='see']").length > 0) {
+      return;
+    }
+    const lemmaInfo = extractLemmaInfo($swe, element, polyfill);
     const englishLexemes = extractEnglishLexemes(
       $en,
       inflectionMap,
       lemmaInfo.lemma,
+      $swe(element).attr("Type") as
+        | keyof typeof SV_EN_TYPE_MAP
+        | null
+        | undefined,
     );
     lemmaInfo.lexemes.push(...englishLexemes);
     const wordId = crypto.randomUUID();
@@ -239,7 +328,6 @@ async function main() {
       "'",
       "''",
     )}', NULL, ${formatNullableString(lemmaInfo.phoneticUrl)}), `;
-
     for (const index of lemmaInfo.indexes) {
       const forms = lemmaInfo.inflections
         .filter((inflection) => inflection.value === index)

@@ -7,6 +7,7 @@ import { getDB } from "@/lib/db";
 import { Button } from "flowbite-react";
 import Link from "next/link";
 import React from "react";
+import { Word } from "./word";
 
 export const runtime = "edge";
 
@@ -29,11 +30,11 @@ async function Sentence({ content }: { content: Array<string> }) {
           content[i + 1] === "!" ||
           content[i + 1] === '"'
         ) {
-          return <span key={i}>{w}</span>;
+          return <Word key={i}>{w}</Word>;
         } else {
           return (
             <React.Fragment key={i}>
-              <span key={i}>{w}</span>
+              <Word key={i}>{w}</Word>
               &nbsp;
             </React.Fragment>
           );
@@ -65,7 +66,6 @@ export default async function Article({
       >
         On origin site
       </Button>
-      {/* <Player url={article.voice_url} /> */}
       {sentences.map((sentence, i) => (
         <Sentence key={i} content={sentence} />
       ))}

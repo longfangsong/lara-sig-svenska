@@ -9,7 +9,11 @@ export default defineWorkersProject(async () => {
   const migrations = await readD1Migrations(migrationsPath);
   const filteredMigrations = migrations.filter((migration) => {
     const migrationNumber = migration.name.split("_")[0];
-    return migrationNumber < "0003" || migrationNumber > "0006";
+    return (
+      migrationNumber == "0005" ||
+      migrationNumber < "0003" ||
+      migrationNumber > "0006"
+    );
   });
   return {
     test: {

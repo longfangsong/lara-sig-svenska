@@ -2,9 +2,35 @@
 
 import { Word, WordSearchResult } from "@/lib/types";
 import debounce from "debounce";
-import { FloatingLabel, HR, Table, TableCell } from "flowbite-react";
+import {
+  FloatingLabel,
+  HR,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  Table,
+  TableCell,
+} from "flowbite-react";
 import React, { useState } from "react";
+import { fetchWithSemaphore } from "@/lib/fetch";
 import { WordDetail } from "../_components/WordDetail";
+
+export function WordDetailModal({
+  word,
+  onClose,
+}: {
+  word: Word | null;
+  onClose?: () => void;
+}) {
+  return (
+    <Modal show={word !== null} onClose={onClose}>
+      <ModalHeader>{word?.lemma}</ModalHeader>
+      <ModalBody>
+        <WordDetail word={word} />
+      </ModalBody>
+    </Modal>
+  );
+}
 
 export default function Words() {
   const [words, setWords] = useState<Array<WordSearchResult>>([]);
@@ -16,8 +42,11 @@ export default function Words() {
         label="Search"
         onKeyDown={debounce((e) => {
           (async () => {
-            const response = await fetch(`/api/words?search=${e.target.value}`);
+            const response = await fetchWithSemaphore(
+              `/api/words?search=${e.target.value}`,
+            );
             const result: Array<WordSearchResult> = await response.json();
+            console.log(result);
             setWords(result);
           })();
         }, 500)}
@@ -32,8 +61,12 @@ export default function Words() {
             <Table.Row
               key={word.id}
               onClick={async () => {
-                const selectedWord = await fetch(`/api/words/${word.id}`);
-                setSelectedWord(await selectedWord.json());
+                const selectedWord = await fetchWithSemaphore(
+                  `/api/words/${word.id}`,
+                );
+                const result: Word = await selectedWord.json();
+                console.log(result);
+                setSelectedWord(result);
               }}
             >
               <TableCell className="py-1">{word.lemma}</TableCell>
@@ -53,7 +86,10 @@ export default function Words() {
           ))}
         </Table.Body>
       </Table>
-      <WordDetail word={selectedWord} onClose={() => setSelectedWord(null)} />
+      <WordDetailModal
+        word={selectedWord}
+        onClose={() => setSelectedWord(null)}
+      />
     </div>
   );
 }
