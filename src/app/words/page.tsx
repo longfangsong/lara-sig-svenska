@@ -25,7 +25,7 @@ export function WordDetailModal({
   return (
     <Modal show={word !== null} onClose={onClose}>
       <ModalHeader>{word?.lemma}</ModalHeader>
-      <ModalBody>
+      <ModalBody className="p-4">
         <WordDetail word={word} />
       </ModalBody>
     </Modal>

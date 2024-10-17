@@ -5,13 +5,19 @@ import { HR, Modal } from "flowbite-react";
 import { PlayButton } from "./PlayButton";
 import React from "react";
 
-export function WordDetail({ word }: { word: Word | null }) {
+export function WordDetail({ word, buttons }: { word: Word | null, buttons?: Array<React.ReactNode> }) {
   return (
     <>
-      <div className="space-y-6">
-        <p>[{word?.phonetic}]</p>
+      <div className="space-y-3 text-gray-500 dark:text-white">
+        <div className="flex flex-row justify-between items-center">
+          <p>[{word?.phonetic}]</p>
+          <div className="w-fit flex flex-row gap-1 pr-2">
+            {word ? <PlayButton voice={word} /> : <></>}
+            {buttons ? buttons.map((component, index) => (
+              <React.Fragment key={index}>{component}</React.Fragment>)) : <></>}
+          </div>
+        </div>
         <p>{word?.part_of_speech}</p>
-        {word ? <PlayButton voice={word} /> : <></>}
         {word?.part_of_speech === "subst." ? (
           <>
             {word?.indexes
@@ -38,10 +44,10 @@ export function WordDetail({ word }: { word: Word | null }) {
           <></>
         )}
       </div>
-      <HR className="m-1 border" />
+      <HR className="my-3 border" />
       {word?.lexemes.map((lexeme, index) => (
         <React.Fragment key={lexeme.id}>
-          <p>{lexeme.definition}</p>
+          <p className="text-gray-500 dark:text-white">{lexeme.definition}</p>
           <div className="grid grid-cols-2">
             <span className="text-sm text-green-500">
               {lexeme.example ? lexeme.example : ""}
