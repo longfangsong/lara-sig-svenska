@@ -1,8 +1,4 @@
-import {
-  getArticle,
-  getArticleMetas,
-  toWordsAndPunctuations,
-} from "@/lib/data/article";
+import { getArticle, toWordsAndPunctuations } from "@/lib/data/article";
 import { getDB } from "@/lib/db";
 import { Button } from "flowbite-react";
 import Link from "next/link";

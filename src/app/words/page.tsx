@@ -42,11 +42,14 @@ export default function Words() {
         label="Search"
         onKeyDown={debounce((e) => {
           (async () => {
+            if (e.target.value === "") {
+              setWords([]);
+              return;
+            }
             const response = await fetchWithSemaphore(
               `/api/words?search=${e.target.value}`,
             );
             const result: Array<WordSearchResult> = await response.json();
-            console.log(result);
             setWords(result);
           })();
         }, 500)}
