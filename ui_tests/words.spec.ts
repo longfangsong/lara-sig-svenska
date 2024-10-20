@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("can search words", async ({ page }) => {
   await page.goto("/words");
-  await page.fill("input", "äppl");
+  await page.fill("main input", "äppl");
   await page.waitForTimeout(1000);
   await page.press("input", "Enter");
   await page.waitForSelector("table tr");

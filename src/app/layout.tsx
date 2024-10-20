@@ -10,6 +10,9 @@ import {
   NavbarToggle,
   ThemeModeScript,
 } from "flowbite-react";
+import { auth } from "@/lib/auth";
+import { SignOutButton } from "./_components/SignOutButton";
+import SignInButton from "./_components/SignInButton";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"] });
 
@@ -19,6 +22,7 @@ export const metadata: Metadata = {
 };
 
 async function NavBar() {
+  const session = await auth();
   return (
     <Navbar
       fluid
@@ -31,6 +35,19 @@ async function NavBar() {
       </NavbarBrand>
       <div className="flex flex-row justify-between items-center gap-2 md:order-2">
         <DarkThemeToggle />
+        {session?.user ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="w-9 h-9 rounded"
+              src={session.user?.image!}
+              alt={session.user.name || ""}
+            />
+            <SignOutButton />
+          </>
+        ) : (
+          <SignInButton />
+        )}
         <NavbarToggle />
       </div>
       <NavbarCollapse>

@@ -35,24 +35,26 @@ export function WordDetailModal({
 export default function Words() {
   const [words, setWords] = useState<Array<WordSearchResult>>([]);
   const [selectedWord, setSelectedWord] = useState<Word | null>(null);
+  const search = debounce((e) => {
+    (async () => {
+      if (e.target.value === "") {
+        setWords([]);
+        return;
+      }
+      const response = await fetchWithSemaphore(
+        `/api/words?search=${e.target.value}`,
+      );
+      const result: Array<WordSearchResult> = await response.json();
+      setWords(result);
+    })();
+  }, 500);
   return (
     <div>
       <FloatingLabel
         variant="filled"
         label="Search"
-        onKeyDown={debounce((e) => {
-          (async () => {
-            if (e.target.value === "") {
-              setWords([]);
-              return;
-            }
-            const response = await fetchWithSemaphore(
-              `/api/words?search=${e.target.value}`,
-            );
-            const result: Array<WordSearchResult> = await response.json();
-            setWords(result);
-          })();
-        }, 500)}
+        onKeyDown={search}
+        onChange={search}
       />
       <Table>
         <Table.Head>
@@ -68,7 +70,6 @@ export default function Words() {
                   `/api/words/${word.id}`,
                 );
                 const result: Word = await selectedWord.json();
-                console.log(result);
                 setSelectedWord(result);
               }}
             >
